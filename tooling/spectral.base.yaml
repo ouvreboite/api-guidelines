@@ -1,0 +1,8 @@
+extends: spectral:oas
+aliases:
+  PathItem:
+    - $.paths[*]
+  OperationObject:
+    - "#PathItem[get,put,post,delete,options,head,patch,trace]"
+#rules will be injected from the rules/*.md files
+rules:

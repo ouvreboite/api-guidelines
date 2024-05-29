@@ -1,0 +1,45 @@
+extends: spectral:oas
+aliases:
+  PathItem:
+    - $.paths[*]
+  OperationObject:
+    - "#PathItem[get,put,post,delete,options,head,patch,trace]"
+#rules will be injected from the rules/*.md files
+rules:  
+  tag-must-have-a-description:
+    description: Tags must have a description.
+    given: $.tags[*]
+    severity: error
+    then:
+      field: description
+      function: truthy
+    
+  common-responses-unauthorized:
+    description: Responses should contain common response - 401 (unauthenticated)
+    message: '{{description}}. Missing {{property}}'
+    severity: error
+    given: $.paths..responses
+    then:
+      field: '401'
+      function: truthy
+    
+  common-responses-unauthorized:
+    description: Responses should contain common response - 403 (unauthorized)
+    message: '{{description}}. Missing {{property}}'
+    severity: error
+    given: $.paths..responses
+    then:
+      field: '403'
+      function: truthy
+    
+  operation-id-camel-case:
+    description: Operation IDs must be camelCase since some generators (e.g. RTK Query) don't support kebab-cases.
+    message: "Operation ID \"{{value}}\" must be camelCase since some generators (e.g. RTK Query) don't support kebab-cases."
+    given: "#OperationObject"
+    severity: error
+    then:
+      field: operationId
+      function: casing
+      functionOptions:
+        type: camel
+  
