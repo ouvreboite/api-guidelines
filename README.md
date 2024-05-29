@@ -1,4 +1,4 @@
-# api-guidlines
+# api-guidelines
 A test repository to describe API guidelines and create a spectral rule set from them.
 
 Rules are simple .md files under the /rules folders.
