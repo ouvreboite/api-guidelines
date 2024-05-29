@@ -14,7 +14,7 @@ rules:
       field: description
       function: truthy
     
-  common-responses-unauthorized:
+  common-responses-unauthenticated:
     description: Responses should contain common response - 401 (unauthenticated)
     message: '{{description}}. Missing {{property}}'
     severity: error
