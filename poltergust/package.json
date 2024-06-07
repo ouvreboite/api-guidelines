@@ -1,0 +1,19 @@
+{
+  "name": "poltergust",
+  "version": "1.0.0",
+  "description": "Extract, validate and pack spectral rules defined in markdown files",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "poltergust": "./index.mjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@stoplight/spectral-core": "^1.18.3",
+    "@stoplight/spectral-ruleset-bundler": "^1.5.2",
+    "link": "^2.1.1"
+  }
+}

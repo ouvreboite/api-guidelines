@@ -1,0 +1,76 @@
+formats: ["oas3"]
+aliases:
+  parameters: 
+    - $.paths[*].parameters
+    - $.paths[*][*].parameters
+#rules will be injected from the rules/*.md files
+rules:
+  base-path-must-start-with-slash:
+    description: Base path must start with /.
+    message: "{{description}}. But was {{value}}."
+    given: $.servers[*]
+    severity: error
+    then:
+      field: url
+      function: pattern
+      functionOptions:
+        match: "^\/"
+  
+  operation-parameters-must-have-description:
+    description: Operation parameters must have a description
+    given: $.paths[*][*].parameters[*]
+    severity: error
+    then:
+      field: description
+      function: truthy
+  
+  operation-must-have-description:
+    description: Operation must have a description
+    given: $.paths[*][*]
+    severity: error
+    then:
+      field: description
+      function: truthy
+  
+  operation-must-have-no-summary:
+    description: Operation must not have a summary
+    given: $.paths[*][*]
+    severity: error
+    then:
+      field: summary
+      function: falsy
+  
+  operation-must-have-at-least-one-response:
+    description: Operation must have at least one response
+    given: $.paths[*][*]
+    severity: error
+    then:
+      - field: responses
+        function: truthy
+      - field: responses
+        function: length
+        functionOptions:
+          min: 1
+  
+  request-bodies-must-have-a-content:
+    description: Request bodies must have a content
+    given: $.paths[*][*].requestBody
+    severity: error
+    then:
+      - field: content
+        function: truthy
+      - field: content
+        function: length
+        functionOptions:
+          min: 1
+  
+  path-parameters-must-be-kebab-case:
+    description: Path parameters must be kebabd case
+    given: "#parameters[?(@.in==\"path\")]"
+    severity: error
+    then:
+      field: name
+      function: pattern
+      functionOptions:
+        match: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+  

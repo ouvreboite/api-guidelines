@@ -1,0 +1,7 @@
+formats: ["oas3"]
+aliases:
+  parameters: 
+    - $.paths[*].parameters
+    - $.paths[*][*].parameters
+#rules will be injected from the rules/*.md files
+rules:

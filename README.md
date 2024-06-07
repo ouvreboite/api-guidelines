@@ -1,20 +1,23 @@
-# api-guidelines
-A test repository to describe API guidelines and create a spectral rule set from them.
+# poltergust
 
-Rules are simple .md files under the /rules folders.
-Each yaml codeblock starting by #spectral is considered a spectral rule and will be aggregated in the spectral.yaml file
+An npm CLI to extract Spectral rules from .md files, merge them and test them.
 
-## Extract and merge rules
+- Each yaml codeblock starting by `#spectral` is considered a spectral rule and will be aggregated in the spectral.yaml file
+- Each yaml codeblock starting by `#✅-test-for: some-rule-name` is considered as an OpenAPI snippet that not should fail the corresponding spectral rule
+- Each yaml codeblock starting by `#❌-test-for: some-rule-name` is considered as an OpenAPI snippet that should fail the corresponding spectral rule
+
+## Install the poltergust CLI
 
 ```sh
-npm install -g @stoplight/spectral-cli
-npm install -g yaml-lint
-python tooling/merge_rules.py
+cd poltergust
+npm install
+npm link
 ```
 
-## Validate merged ruleset
+## Test and merge the rules
 
 ```sh
-yamllint spectral.yaml
-spectral lint tooling/test.oas.yaml --ruleset spectral.yaml
+cd ..
+poltergust test ./rules
+poltergust merge ./rules
 ```
