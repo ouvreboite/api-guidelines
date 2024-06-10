@@ -1,4 +1,4 @@
-# Some rules
+# API rules
 
 1. [base-path-must-start-with-slash](#base-path-must-start-with-slash)
 2. [operation-parameters-must-have-description](#operation-parameters-must-have-description)
@@ -6,25 +6,27 @@
 4. [operation-must-have-no-summary](#operation-must-have-no-summary)
 5. [operation-must-have-at-least-one-response](#operation-must-have-at-least-one-response)
 6. [request-bodies-must-have-a-content](#request-bodies-must-have-a-content)
-7. [path-path-parameters-must-be-kebab-case](#path-path-parameters-must-be-kebab-case)
-8. [operation-path-parameters-must-be-kebab-case](#operation-path-parameters-must-be-kebab-case)
 
 ## base-path-must-start-with-slash
 
 We don't want static base path, because the endpoints will be aggregated and a custom base path will be injected later.
 
+OpenAPI examples:
+
 ```yaml
-#spectral-test: base-path-must-start-with-slash ❌
+#spectral-test
+#spectral-should-fail-anywhere-❌: base-path-must-start-with-slash
 openapi: 3.0.1
 info:
   title: Test
-  version: 1.0.0
+  version: 1.0.0 
 servers:
 - url: do-not-start-with-slash
 ```
 
 ```yaml
-#spectral-test: base-path-must-start-with-slash ✅
+#spectral-test
+#spectral-should-not-fail-anywhere-✅: base-path-must-start-with-slash
 openapi: 3.0.1
 info:
   title: Test
@@ -55,22 +57,23 @@ base-path-must-start-with-slash:
 ## operation-parameters-must-have-description
 
 ```yaml
-#spectral-test: operation-parameters-must-have-description ❌
+#spectral-test
 openapi: 3.0.1
 paths:
   /test/{id}:
-    get:
+    get: 
       parameters:
-      - name: id
-        in: path
+      - name: id #spectral-should-fail-here-❌: operation-parameters-must-have-description
+        in: path 
+        # need a description
         required: true
-        # no description for the id param
         schema:
           type: string
 ```
 
 ```yaml
-#spectral-test: operation-parameters-must-have-description ✅
+#spectral-test
+#spectral-should-not-fail-anywhere-✅: operation-parameters-must-have-description
 openapi: 3.0.1
 paths:
   /test/{id}:
@@ -162,86 +165,3 @@ request-bodies-must-have-a-content:
       functionOptions:
         min: 1
 ```
-
-## path-parameters-must-be-kebab-case
-
-A example valid kebab case parameters, both defined at the path or operation level
-```yaml
-#do-not-fail-rule: path-parameters-must-be-kebab-case ✅
-openapi: 3.0.1
-info:
-  title: Test
-  version: 1.0.0
-paths:
-  /cats/{dog-id}: 
-    get:
-      parameters:
-        - name: dog-id #good
-          in: path
-          required: true
-          schema:
-            type: number
-  /dogs/{cat-id}: 
-    parameters:
-      - name: cat-id #good
-        in: path
-        required: true
-        schema:
-          type: number
-    get: 
-```
-
-
-Example of a wrong parameter, defined at the operation level
-```yaml
-#spectral-test: path-parameters-must-be-kebab-case ❌
-openapi: 3.0.1
-info:
-  title: Test
-  version: 1.0.0
-paths:
-  /pets/{petId}: 
-    get:
-      parameters:
-        - name: petId #invalid, defined at the operation level
-          in: path
-          required: true
-          schema:
-            type: number
-```
-
-```yaml
-#spectral-test: path-parameters-must-be-kebab-case ❌
-openapi: 3.0.1
-info:
-  title: Test
-  version: 1.0.0
-paths:
-  /pets/{petId}:
-    parameters:
-      - name: petId #invalid, defined at the path level
-        in: path
-        required: true
-        schema:
-          type: number
-```
-
-<details>
-  <summary>Spectral rule 🤖</summary>
-
-This use the **pathParameters** alias to target both the parameters in the "paths" and the "operations.
-
-```yaml
-#spectral-rule
-path-parameters-must-be-kebab-case:
-  description: Path parameters must be kebabd case
-  given: "#parameters[?(@.in==\"path\")]"
-  severity: error
-  then:
-    field: name
-    function: pattern
-    functionOptions:
-      match: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
-```
-
-</details>

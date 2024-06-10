@@ -65,7 +65,7 @@ rules:
           min: 1
   
   path-parameters-must-be-kebab-case:
-    description: Path parameters must be kebabd case
+    description: Path parameters must be kebab case
     given: "#parameters[?(@.in==\"path\")]"
     severity: error
     then:
