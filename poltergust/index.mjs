@@ -32,7 +32,7 @@ if (args[0] === 'merge') {
     for(let ruleName in rulesAndTestCases){
         const rule = rulesAndTestCases[ruleName].rule;
         const testCases = rulesAndTestCases[ruleName].testCases;
-        console.log(`- ${ruleName} (${rule.filePath}:${rule.lineNumber})`);
+        console.log(`- ${ruleName} (${rule.filePath}:${rule.line})`);
         if(!testCases || testCases.length == 0){
             continue;
         }

@@ -6,7 +6,7 @@ import { bundleAndLoadRuleset } from "@stoplight/spectral-ruleset-bundler/with-l
 
 /**
  * @param {string} rulesDir
- * @returns {Object.<string, {rule: {name: string, content: string, lineNumber: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, startLine: number, shouldFail: boolean}[], lineNumber: number, filePath: string}[]>} the spectral rules and test cases by rule name
+ * @returns {Object.<string, {rule: {name: string, content: string, line: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, line: number, shouldFail: boolean}[], line: number, filePath: string}[]>} the spectral rules and test cases by rule name
  */
 export function extractAllRulesAndTestCases(rulesDir) {
     const markdownFiles = fs.readdirSync(rulesDir).filter(f => f.endsWith('.md'));
@@ -14,7 +14,18 @@ export function extractAllRulesAndTestCases(rulesDir) {
     let rulesAndTestCases = {};
     for (let file of markdownFiles) {
         const filePath = path.join(rulesDir, file);
-        rulesAndTestCases = {...rulesAndTestCases, ...extractRulesAndTestCases(filePath)};
+        const rulesAndTestCasesForFile = extractRulesAndTestCases(filePath);
+        //merge or append rules and tests cases in 
+        for (let ruleName in rulesAndTestCasesForFile) {
+            if(rulesAndTestCases[ruleName]){
+                const rule = rulesAndTestCases[ruleName].rule || rulesAndTestCasesForFile[ruleName].rule;
+                //merge testcases
+                const testCases = (rulesAndTestCases[ruleName].testCases || []).concat(rulesAndTestCasesForFile[ruleName].testCases || []);
+                rulesAndTestCases[ruleName] = {rule, testCases};
+            }else{
+                rulesAndTestCases[ruleName] = rulesAndTestCasesForFile[ruleName];
+            }
+        }
     }
     return rulesAndTestCases
 }
@@ -22,7 +33,7 @@ export function extractAllRulesAndTestCases(rulesDir) {
 
 /**
  * @param {string} filePath 
- * @returns {Object.<string, {rule: {name: string, content: string, lineNumber: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, startLine: number, shouldFail: boolean}[], lineNumber: number, filePath: string}[]>} rule and test cases by rule name
+ * @returns {Object.<string, {rule: {name: string, content: string, line: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, line: number, shouldFail: boolean}[], line: number, filePath: string}[]>} rule and test cases by rule name
  */
 export function extractRulesAndTestCases(filePath) {
     const blocks = extractYamlBlocks(filePath);
@@ -63,7 +74,7 @@ export function extractRulesAndTestCases(filePath) {
 
 /**
  * @param {string} filePath 
- * @returns {{content: string, lineNumber: number, filePath: string}[]} the YAML codeblocs
+ * @returns {{content: string, line: number, filePath: string}[]} the YAML codeblocs
  */
 export function extractYamlBlocks(filePath) {
     let fileContent = fs.readFileSync(filePath, 'utf8');
@@ -76,8 +87,8 @@ export function extractYamlBlocks(filePath) {
         const content = match[0]
             .replace(/^```yaml\n/, '')
             .replace(/```$/, '');
-        const lineNumber = fileContent.substring(0, match.index).split('\n').length+1;
-        blocks.push({content, lineNumber, filePath});
+        const line = fileContent.substring(0, match.index).split('\n').length+1;
+        blocks.push({content, line, filePath});
     }
 
     return blocks;
@@ -87,24 +98,24 @@ export function extractYamlBlocks(filePath) {
  * 
  * @param {*} block 
  * @param {*} filePath 
- * @returns {{name: string, content: string, lineNumber: number, filePath: string}} the spectral rule
+ * @returns {{name: string, content: string, line: number, filePath: string}} the spectral rule
  */
 function extractRuleFromBlock(block, filePath) {
     const content = block.content.split('\n').slice(1).join('\n');
     const name = content.split('\n')[0].trim().replace(':', '');
-    const lineNumber = block.lineNumber;
-    return {name, content, lineNumber, filePath};
+    const line = block.line;
+    return {name, content, line, filePath};
 }
 
 /**
  * 
  * @param {*} block 
  * @param {*} filePath 
- * @returns {{content: string, assertions: {ruleName: string, startLine: number, shouldFail: boolean}[], lineNumber: number, filePath: string}} the spectral rule
+ * @returns {{content: string, assertions: {ruleName: string, line: number, shouldFail: boolean}[], line: number, filePath: string}} the spectral rule
  */
 function extractTestCaseBlock(block, filePath) {
     const content = block.content.split('\n').slice(1).join('\n');
-    const lineNumber = block.lineNumber;
+    const line = block.line;
 
     const assertions = [];
     content.split('\n').forEach((line, index) => {
@@ -114,7 +125,7 @@ function extractTestCaseBlock(block, filePath) {
         }
         if(line.includes('#spectral-should-not-fail-here-✅:')){
             const ruleName = line.split('#spectral-should-not-fail-here-✅:')[1].trim();
-            assertions.push({ruleName, shouldFail: false, startLine: index});
+            assertions.push({ruleName, shouldFail: false, line: index});
         }
         if(line.includes('#spectral-should-fail-anywhere-❌:')){
             const ruleName = line.split('#spectral-should-fail-anywhere-❌:')[1].trim();
@@ -122,11 +133,11 @@ function extractTestCaseBlock(block, filePath) {
         }
         if(line.includes('#spectral-should-fail-here-❌:')){
             const ruleName = line.split('#spectral-should-fail-here-❌:')[1].trim();
-            assertions.push({ruleName, shouldFail: true, startLine: index});
+            assertions.push({ruleName, shouldFail: true, line: index});
         }
     });
 
-    return {content, lineNumber, filePath, assertions};
+    return {content, line, filePath, assertions};
 }
 
 
@@ -153,8 +164,8 @@ export function generateRuleFileContent(spectralRules, rulesDir){
 
 /**
  * 
- * @param {{name: string, content: string, lineNumber: number, filePath: string}} rule 
- * @param {{content: string, assertions: {ruleName: string, startLine: number, shouldFail: boolean}[], lineNumber: number, filePath: string}} testCase 
+ * @param {{name: string, content: string, line: number, filePath: string}} rule 
+ * @param {{content: string, assertions: {ruleName: string, line: number, shouldFail: boolean}[], line: number, filePath: string}} testCase 
  * @param {string} rulesDir 
  */
 export async function runTestCase(rule, testCase, rulesDir){
@@ -173,45 +184,44 @@ export async function runTestCase(rule, testCase, rulesDir){
     };  
     const spectral = new Spectral();
     spectral.setRuleset(await bundleAndLoadRuleset("/.spectral.yaml", { fs, fetch }));
-    let result = await spectral.run(testCase.content);
+    let errors = await spectral.run(testCase.content);
 
 
     //check each assertions
     let ok = true;
+    errors = errors.filter(e => e.code === rule.name);
     for (let assertion of testCase.assertions) {
         //should-not-fail-anywhere
-        if(!assertion.shouldFail && assertion.startLine === undefined){
-            let errors = result.filter(e => e.code === assertion.ruleName);
+        if(!assertion.shouldFail && assertion.line === undefined){
             if(errors.length > 0){
-                console.error(`  💔 Was not expecting to fail rule anywhere ${assertion.ruleName} at line ${errors[0].range.start.line} in test (${testCase.filePath}:${testCase.lineNumber})`);
+                console.error(`  💔 Was not expecting to fail rule anywhere ${assertion.ruleName} at line ${errors[0].range.start.line} in test (${testCase.filePath}:${testCase.line})`);
                 ok = false;
             }
         }
 
         //should-fail-anywhere
-        if(assertion.shouldFail && assertion.startLine === undefined){
-            let errors = result.filter(e => e.code === assertion.ruleName);
+        if(assertion.shouldFail && assertion.line === undefined){
             if(errors.length === 0){
-                console.error(`  💔 Was expecting to fail rule anywhere ${assertion.ruleName} in test (${testCase.filePath}:${testCase.lineNumber})`);
+                console.error(`  💔 Was expecting to fail rule anywhere ${assertion.ruleName} in test (${testCase.filePath}:${testCase.line})`);
                 ok = false;
             }
         }
 
         //should-not-fail-here
-        if(!assertion.shouldFail && assertion.startLine !== undefined){
-            let errors = result.filter(e => e.code === assertion.ruleName && e.range.start.line === assertion.startLine);
-            if(errors.length > 0){
-                console.error(`  💔 Was not expecting to fail rule ${assertion.ruleName} at line ${assertion.startLine} in test (${testCase.filePath}:${testCase.lineNumber+assertion.startLine+1})`);
+        if(!assertion.shouldFail && assertion.line !== undefined){
+            let matchingErrors = errors.filter(e => e.range.start.line <= assertion.line && e.range.end.line >= assertion.line);
+            if(matchingErrors.length > 0){
+                console.error(`  💔 Was not expecting to fail rule ${assertion.ruleName} at line ${assertion.line} in test (${testCase.filePath}:${testCase.line+assertion.line+1})`);
                 ok = false;
             }
         }
 
         //should-fail-here
-        if(assertion.shouldFail && assertion.startLine !== undefined){
-            let errors = result.filter(e => e.code === assertion.ruleName && e.range.start.line === assertion.startLine);
-            if(errors.length === 0){
-                console.error(`  💔 Was expecting to fail rule ${assertion.ruleName} at line ${assertion.startLine} in test (${testCase.filePath}:${testCase.lineNumber+assertion.startLine+1})`);
-                const prettyErrors = result.map(e => {return {code: e.code, line: e.range.start.line};});
+        if(assertion.shouldFail && assertion.line !== undefined){
+            let matchingErrors = errors.filter(e => e.range.start.line <= assertion.line && e.range.end.line >= assertion.line);
+            if(matchingErrors.length === 0){
+                console.error(`  💔 Was expecting to fail rule ${assertion.ruleName} at line ${assertion.line} in test (${testCase.filePath}:${testCase.line+assertion.line+1})`);
+                const prettyErrors = errors.map(e => {return {code: e.code, start: e.range.start.line, end: e.range.end.line};});
                 console.error(`  But got those errors instead:`);
                 console.error(prettyErrors);
                 ok = false;
@@ -221,6 +231,6 @@ export async function runTestCase(rule, testCase, rulesDir){
     }
 
     if(ok){
-        console.log(`  🧪 Test case succesful (${testCase.filePath}:${testCase.lineNumber})`);
+        console.log(`  🧪 Test case succesful (${testCase.filePath}:${testCase.line})`);
     }
 }
