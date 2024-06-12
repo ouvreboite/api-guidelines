@@ -1,4 +1,7 @@
 formats: ["oas3"]
+extends: "spectral:oas"
+functions: 
+  - isRequiredPropertyDefined
 aliases:
   parameters: 
     - $.paths[*].parameters
@@ -73,4 +76,12 @@ rules:
       function: pattern
       functionOptions:
         match: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+  
+  required-property-must-exist:
+    description: Required property must exist
+    message: "Required property must exist: {{error}}"
+    given: $..required[*]
+    severity: error
+    then:
+      function: isRequiredPropertyDefined
   

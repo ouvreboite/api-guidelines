@@ -28,7 +28,7 @@ paths:
         required: true
         schema:
           type: number
-    get: 
+    get: {}
 ```
 
 
@@ -55,7 +55,7 @@ paths:
         required: true
         schema:
           type: number
-    get: 
+    get: {}
   /mouses/{mice-id}: 
     get:
       parameters:
@@ -82,6 +82,51 @@ path-parameters-must-be-kebab-case:
     function: pattern
     functionOptions:
       match: "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+```
+
+</details>
+
+## required-property-must-exist
+
+```yaml
+#spectral-test
+openapi: 3.0.1
+info:
+  title: Test
+  version: 1.0.0
+components:
+  schemas: 
+    Pet:
+      required:
+        - nestedschema
+      type: object
+      properties:
+        name:
+          type: string
+        nestedschema:
+          type: object 
+          required:
+            - id #spectral-should-not-fail-here-✅: required-property-must-exist
+            - nonexistent #spectral-should-fail-here-❌: required-property-must-exist
+          properties: 
+            id: 
+              type: string
+```
+
+<details>
+  <summary>Spectral rule 🤖</summary>
+
+This use the **isRequiredPropertyDefined** custom function.
+
+```yaml
+#spectral-rule
+required-property-must-exist:
+  description: Required property must exist
+  message: "Required property must exist: {{error}}"
+  given: $..required[*]
+  severity: error
+  then:
+    function: isRequiredPropertyDefined
 ```
 
 </details>

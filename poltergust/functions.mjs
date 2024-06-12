@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import spectralCore from "@stoplight/spectral-core";
+import { mkdtemp } from 'node:fs/promises';
 const { Spectral } = spectralCore;
 import { bundleAndLoadRuleset } from "@stoplight/spectral-ruleset-bundler/with-loader";
 
@@ -169,68 +170,78 @@ export function generateRuleFileContent(spectralRules, rulesDir){
  * @param {string} rulesDir 
  */
 export async function runTestCase(rule, testCase, rulesDir){
-    //run test case against the rule
-    const ruleFile = generateRuleFileContent({ruleName: rule}, rulesDir);
-    const fs = {
-        promises: {
-            async readFile(filepath) {
-                if (filepath === "/.spectral.yaml") {
-                    return ruleFile;
+    //write rule file to temp dir
+    const tempDir = await mkdtemp(rule.name+"-test-");
+    const tempRuleFilePath = path.join(tempDir, '.spectral.yaml');
+    const functionsDirPath = path.join(rulesDir, 'functions');
+    const tempFunctionsDirPath = path.join(tempDir, 'functions')
+    let ruleFile = generateRuleFileContent({ruleName: rule}, rulesDir);
+    //append ruleFile: aaa to the rulefile
+    //ruleFile += `\nruleFile: ${tempFunctionsDirPath}`;
+    fs.writeFileSync(tempRuleFilePath, ruleFile);
+
+    //copy the functions folder into the temp dir
+    fs.mkdirSync(tempFunctionsDirPath);
+    fs.readdirSync(functionsDirPath).forEach(file => {
+        const sourceFile = path.join(functionsDirPath, file);
+        const destFile = path.join(tempFunctionsDirPath, file);
+        fs.copyFileSync(sourceFile, destFile);
+    });
+
+    try{
+        //run test case against the rule
+        const spectral = new Spectral();
+        spectral.setRuleset(await bundleAndLoadRuleset(path.resolve(tempRuleFilePath), { fs, fetch }));
+        let errors = await spectral.run(testCase.content);
+
+        //check each assertions
+        let ok = true;
+        errors = errors.filter(e => e.code === rule.name);
+        for (let assertion of testCase.assertions) {
+            //should-not-fail-anywhere
+            if(!assertion.shouldFail && assertion.line === undefined){
+                if(errors.length > 0){
+                    console.error(`  ❌ Was not expecting to fail rule anywhere ${assertion.ruleName} in test (${testCase.filePath}:${testCase.line})`);
+                    console.error(`  But failed there instead:`);
+                    errors.forEach(e => console.error('  ', {start: e.range.start.line, end: e.range.end.line}, `(${testCase.filePath}:${testCase.line+e.range.start.line+1})`));
+                    ok = false;
                 }
-
-                throw new Error(`Could not read ${filepath}`);
-            },
-        },
-    };  
-    const spectral = new Spectral();
-    spectral.setRuleset(await bundleAndLoadRuleset("/.spectral.yaml", { fs, fetch }));
-    let errors = await spectral.run(testCase.content);
-
-
-    //check each assertions
-    let ok = true;
-    errors = errors.filter(e => e.code === rule.name);
-    for (let assertion of testCase.assertions) {
-        //should-not-fail-anywhere
-        if(!assertion.shouldFail && assertion.line === undefined){
-            if(errors.length > 0){
-                console.error(`  💔 Was not expecting to fail rule anywhere ${assertion.ruleName} at line ${errors[0].range.start.line} in test (${testCase.filePath}:${testCase.line})`);
-                ok = false;
             }
+
+            //should-fail-anywhere
+            if(assertion.shouldFail && assertion.line === undefined){
+                if(errors.length === 0){
+                    console.error(`  ❌ Was expecting to fail rule anywhere ${assertion.ruleName} in test (${testCase.filePath}:${testCase.line})`);
+                    ok = false;
+                }
+            }
+
+            //should-not-fail-here
+            if(!assertion.shouldFail && assertion.line !== undefined){
+                let matchingErrors = errors.filter(e => e.range.start.line <= assertion.line && e.range.end.line >= assertion.line);
+                if(matchingErrors.length > 0){
+                    console.error(`  ❌ Was not expecting to fail rule ${assertion.ruleName} at line ${assertion.line} in test (${testCase.filePath}:${testCase.line+assertion.line+1})`);
+                    ok = false;
+                }
+            }
+
+            //should-fail-here
+            if(assertion.shouldFail && assertion.line !== undefined){
+                let matchingErrors = errors.filter(e => e.range.start.line <= assertion.line && e.range.end.line >= assertion.line);
+                if(matchingErrors.length === 0){
+                    console.error(`  ❌ Was expecting to fail rule ${assertion.ruleName} at line ${assertion.line} in test (${testCase.filePath}:${testCase.line+assertion.line+1})`);
+                    console.error(`  But failed there instead:`);
+                    errors.forEach(e => console.error('  ', {start: e.range.start.line, end: e.range.end.line}, `(${testCase.filePath}:${testCase.line+e.range.start.line+1})`));
+                    ok = false;
+                }
+            }
+
         }
 
-        //should-fail-anywhere
-        if(assertion.shouldFail && assertion.line === undefined){
-            if(errors.length === 0){
-                console.error(`  💔 Was expecting to fail rule anywhere ${assertion.ruleName} in test (${testCase.filePath}:${testCase.line})`);
-                ok = false;
-            }
+        if(ok){
+            console.log(`  ✅ Test OK (${testCase.filePath}:${testCase.line})`);
         }
-
-        //should-not-fail-here
-        if(!assertion.shouldFail && assertion.line !== undefined){
-            let matchingErrors = errors.filter(e => e.range.start.line <= assertion.line && e.range.end.line >= assertion.line);
-            if(matchingErrors.length > 0){
-                console.error(`  💔 Was not expecting to fail rule ${assertion.ruleName} at line ${assertion.line} in test (${testCase.filePath}:${testCase.line+assertion.line+1})`);
-                ok = false;
-            }
-        }
-
-        //should-fail-here
-        if(assertion.shouldFail && assertion.line !== undefined){
-            let matchingErrors = errors.filter(e => e.range.start.line <= assertion.line && e.range.end.line >= assertion.line);
-            if(matchingErrors.length === 0){
-                console.error(`  💔 Was expecting to fail rule ${assertion.ruleName} at line ${assertion.line} in test (${testCase.filePath}:${testCase.line+assertion.line+1})`);
-                const prettyErrors = errors.map(e => {return {code: e.code, start: e.range.start.line, end: e.range.end.line};});
-                console.error(`  But got those errors instead:`);
-                console.error(prettyErrors);
-                ok = false;
-            }
-        }
-
-    }
-
-    if(ok){
-        console.log(`  🧪 Test case succesful (${testCase.filePath}:${testCase.line})`);
+    }finally{
+        fs.rmSync(tempDir, {recursive: true});
     }
 }
