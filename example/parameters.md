@@ -59,7 +59,7 @@ paths:
   /mouses/{mice-id}: 
     get:
       parameters:
-        - name: mice-id #spectral-should-fail-here-❌: path-parameters-must-be-kebab-case
+        - name: mice-id #spectral-should-not-fail-here-✅: path-parameters-must-be-kebab-case
           in: path
           required: true
           schema:

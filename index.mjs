@@ -43,8 +43,9 @@ if (args[0] === 'merge') {
         }
         
         for(let testCase of testCases){
-            await runTestCase(rule, testCase, rulesDir);
+            const testCaseSuccess = await runTestCase(rule, testCase, rulesDir);
+            if(! testCaseSuccess)
+                process.exitCode = 1;
         }
     }
-    process.exit(1);
 }

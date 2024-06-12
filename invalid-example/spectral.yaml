@@ -1,0 +1,19 @@
+formats: ["oas3"]
+extends: "spectral:oas"
+aliases:
+  parameters: 
+    - $.paths[*].parameters
+    - $.paths[*][*].parameters
+#rules will be injected from the rules/*.md files
+rules:
+  base-path-must-start-with-slash:
+    description: Base path must start with /.
+    message: "{{description}}. But was {{value}}."
+    given: $.servers[*]
+    severity: error
+    then:
+      field: url
+      function: pattern
+      functionOptions:
+        match: "^\/"
+  

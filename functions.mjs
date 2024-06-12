@@ -170,25 +170,28 @@ export function generateRuleFileContent(spectralRulesContents, rulesDir){
  * @return {boolean} success
  */
 export async function runTestCase(rule, testCase, rulesDir){
-    //write rule file to temp dir
-    const tempDir = await mkdtemp(rule.name+"-test-");
-    const tempRuleFilePath = path.join(tempDir, '.spectral.yaml');
-    const functionsDirPath = path.join(rulesDir, 'functions');
-    const tempFunctionsDirPath = path.join(tempDir, 'functions')
-    let ruleFile = generateRuleFileContent([rule.content], rulesDir);
-    fs.writeFileSync(tempRuleFilePath, ruleFile);
-
-    //copy the functions folder into the temp dir
-    fs.mkdirSync(tempFunctionsDirPath);
-    fs.readdirSync(functionsDirPath).forEach(file => {
-        const sourceFile = path.join(functionsDirPath, file);
-        const destFile = path.join(tempFunctionsDirPath, file);
-        fs.copyFileSync(sourceFile, destFile);
-    });
-
     let ok = true;
 
+    //write rule file to temp dir
+    const tempDir = await mkdtemp(rule.name+"-test-");
     try{
+        const tempRuleFilePath = path.join(tempDir, '.spectral.yaml');
+        let ruleFile = generateRuleFileContent([rule.content], rulesDir);
+        fs.writeFileSync(tempRuleFilePath, ruleFile);
+
+        //if the function dir exists, copy the functions folder into the temp dir
+        const functionsDirPath = path.join(rulesDir, 'functions');
+        if(fs.existsSync(functionsDirPath)){
+            const tempFunctionsDirPath = path.join(tempDir, 'functions')
+            fs.mkdirSync(tempFunctionsDirPath);
+            
+            fs.readdirSync(functionsDirPath).forEach(file => {
+                const sourceFile = path.join(functionsDirPath, file);
+                const destFile = path.join(tempFunctionsDirPath, file);
+                fs.copyFileSync(sourceFile, destFile);
+            });
+        }    
+
         //run test case against the rule
         const spectral = new Spectral();
         spectral.setRuleset(await bundleAndLoadRuleset(path.resolve(tempRuleFilePath), { fs, fetch }));

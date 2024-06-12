@@ -1,3 +1,5 @@
+[![Run Poltergust Tests](https://github.com/ouvreboite/api-guidelines/actions/workflows/poltergust.yaml/badge.svg)](https://github.com/ouvreboite/api-guidelines/actions/workflows/poltergust.yaml)
+
 # 👻 poltergust
 
 An npm CLI to extract Spectral rules from .md files, merge them and test them.

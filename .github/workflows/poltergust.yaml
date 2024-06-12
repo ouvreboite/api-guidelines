@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  build-and-test-valid-example:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,5 +20,26 @@ jobs:
     - name: Install poltergust
       run: npm ci
 
-    - name: Run Poltergust tests
+    - name: Test the example ruleset
       run: npx poltergust test ./example
+
+  build-and-test-invalid-example:
+    needs: build-and-test-valid-example
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Use Node.js
+      uses: actions/setup-node@v2
+
+    - name: Install poltergust
+      run: npm ci
+
+    - name: Test the example ruleset
+      run: npx poltergust test ./example
+
+    - name: Test the invalid example ruleset (should exit 1)
+      run: npx poltergust test ./invalid-example || (exitcode=$?; [ $exitcode -eq 1 ] || exit $exitcode)
+      shell: bash
