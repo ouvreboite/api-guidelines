@@ -10,11 +10,12 @@ if (args[0] === 'merge') {
     const rulesDir = args[1];
     console.log("🔎 Extracting and merging spectral rules from the .md files in the directory: " + rulesDir);
     let rulesAndTestCases = extractAllRulesAndTestCases(rulesDir);
-    let rules = Object.values(rulesAndTestCases).map((ruleAndTestCases) => ruleAndTestCases.rule).filter((rule) => rule);
+
     for(let ruleName in rulesAndTestCases){
         const rule = rulesAndTestCases[ruleName].rule;
         console.log(`👻 ${ruleName} (${rule.filePath}:${rule.line})`);
     }
+    let rules = Object.values(rulesAndTestCases).filter((ruleAndTestCases) => ruleAndTestCases.rule).map((ruleAndTestCases) => ruleAndTestCases.rule.content);
     const ruleFileContent = generateRuleFileContent(rules, rulesDir);
     const ruleFile = path.join(rulesDir, 'spectral.yaml');
     fs.writeFileSync(ruleFile, ruleFileContent, 'utf8');
@@ -45,4 +46,5 @@ if (args[0] === 'merge') {
             await runTestCase(rule, testCase, rulesDir);
         }
     }
+    process.exit(1);
 }

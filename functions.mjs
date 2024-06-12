@@ -143,20 +143,19 @@ function extractTestCaseBlock(block, filePath) {
 
 
 /**
- * @param {Object.<string, {content:string}>} spectralRules
+ * @param {string[]} spectralRulesContents
  * @param {string} rulesDir 
  * @returns {string} the content of the spectral.yaml file
  */
-export function generateRuleFileContent(spectralRules, rulesDir){
+export function generateRuleFileContent(spectralRulesContents, rulesDir){
     const baseFile = path.join(rulesDir, 'spectral.base.yaml');
     if (!fs.existsSync(baseFile)) {
         console.error(`❌ The file ${baseFile} does not exist.`);
     }
-    let ruleFileContent = fs.readFileSync(baseFile, 'utf8');
     
-    for (let ruleName in spectralRules) {
-        const rule = spectralRules[ruleName];
-        const indentedRule = rule.content.split('\n').map(line => '  ' + line).join('\n')
+    let ruleFileContent = fs.readFileSync(baseFile, 'utf8');
+    for (let rule of spectralRulesContents) {
+        const indentedRule = rule.split('\n').map(line => '  ' + line).join('\n')
         ruleFileContent += '\n'+indentedRule;
     }
 
@@ -168,6 +167,7 @@ export function generateRuleFileContent(spectralRules, rulesDir){
  * @param {{name: string, content: string, line: number, filePath: string}} rule 
  * @param {{content: string, assertions: {ruleName: string, line: number, shouldFail: boolean}[], line: number, filePath: string}} testCase 
  * @param {string} rulesDir 
+ * @return {boolean} success
  */
 export async function runTestCase(rule, testCase, rulesDir){
     //write rule file to temp dir
@@ -175,9 +175,7 @@ export async function runTestCase(rule, testCase, rulesDir){
     const tempRuleFilePath = path.join(tempDir, '.spectral.yaml');
     const functionsDirPath = path.join(rulesDir, 'functions');
     const tempFunctionsDirPath = path.join(tempDir, 'functions')
-    let ruleFile = generateRuleFileContent({ruleName: rule}, rulesDir);
-    //append ruleFile: aaa to the rulefile
-    //ruleFile += `\nruleFile: ${tempFunctionsDirPath}`;
+    let ruleFile = generateRuleFileContent([rule.content], rulesDir);
     fs.writeFileSync(tempRuleFilePath, ruleFile);
 
     //copy the functions folder into the temp dir
@@ -188,29 +186,32 @@ export async function runTestCase(rule, testCase, rulesDir){
         fs.copyFileSync(sourceFile, destFile);
     });
 
+    let ok = true;
+
     try{
         //run test case against the rule
         const spectral = new Spectral();
         spectral.setRuleset(await bundleAndLoadRuleset(path.resolve(tempRuleFilePath), { fs, fetch }));
-        let errors = await spectral.run(testCase.content);
+        const errors = await spectral.run(testCase.content);
 
         //check each assertions
-        let ok = true;
-        errors = errors.filter(e => e.code === rule.name);
-        for (let assertion of testCase.assertions) {
+        const ruleErrors = errors.filter(e => e.code === rule.name);
+        const ruleAssertions = testCase.assertions.filter(a => a.ruleName === rule.name);
+        
+        for (let assertion of ruleAssertions) {
             //should-not-fail-anywhere
             if(!assertion.shouldFail && assertion.line === undefined){
-                if(errors.length > 0){
+                if(ruleErrors.length > 0){
                     console.error(`  ❌ Was not expecting to fail rule anywhere ${assertion.ruleName} in test (${testCase.filePath}:${testCase.line})`);
                     console.error(`  But failed there instead:`);
-                    errors.forEach(e => console.error('  ', {start: e.range.start.line, end: e.range.end.line}, `(${testCase.filePath}:${testCase.line+e.range.start.line+1})`));
+                    ruleErrors.forEach(e => console.error('  ', {start: e.range.start.line, end: e.range.end.line}, `(${testCase.filePath}:${testCase.line+e.range.start.line+1})`));
                     ok = false;
                 }
             }
 
             //should-fail-anywhere
             if(assertion.shouldFail && assertion.line === undefined){
-                if(errors.length === 0){
+                if(ruleErrors.length === 0){
                     console.error(`  ❌ Was expecting to fail rule anywhere ${assertion.ruleName} in test (${testCase.filePath}:${testCase.line})`);
                     ok = false;
                 }
@@ -218,7 +219,7 @@ export async function runTestCase(rule, testCase, rulesDir){
 
             //should-not-fail-here
             if(!assertion.shouldFail && assertion.line !== undefined){
-                let matchingErrors = errors.filter(e => e.range.start.line <= assertion.line && e.range.end.line >= assertion.line);
+                let matchingErrors = ruleErrors.filter(e => e.range.start.line <= assertion.line && e.range.end.line >= assertion.line);
                 if(matchingErrors.length > 0){
                     console.error(`  ❌ Was not expecting to fail rule ${assertion.ruleName} at line ${assertion.line} in test (${testCase.filePath}:${testCase.line+assertion.line+1})`);
                     ok = false;
@@ -227,21 +228,24 @@ export async function runTestCase(rule, testCase, rulesDir){
 
             //should-fail-here
             if(assertion.shouldFail && assertion.line !== undefined){
-                let matchingErrors = errors.filter(e => e.range.start.line <= assertion.line && e.range.end.line >= assertion.line);
+                let matchingErrors = ruleErrors.filter(e => e.range.start.line <= assertion.line && e.range.end.line >= assertion.line);
                 if(matchingErrors.length === 0){
                     console.error(`  ❌ Was expecting to fail rule ${assertion.ruleName} at line ${assertion.line} in test (${testCase.filePath}:${testCase.line+assertion.line+1})`);
                     console.error(`  But failed there instead:`);
-                    errors.forEach(e => console.error('  ', {start: e.range.start.line, end: e.range.end.line}, `(${testCase.filePath}:${testCase.line+e.range.start.line+1})`));
+                    ruleErrors.forEach(e => console.error('  ', {start: e.range.start.line, end: e.range.end.line}, `(${testCase.filePath}:${testCase.line+e.range.start.line+1})`));
                     ok = false;
                 }
             }
 
         }
-
-        if(ok){
-            console.log(`  ✅ Test OK (${testCase.filePath}:${testCase.line})`);
-        }
     }finally{
         fs.rmSync(tempDir, {recursive: true});
+    }
+
+    if(ok){
+            console.log(`  ✅ Test OK (${testCase.filePath}:${testCase.line})`);
+            return true;
+    }else{
+        return false;
     }
 }

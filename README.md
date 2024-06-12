@@ -9,7 +9,6 @@ An npm CLI to extract Spectral rules from .md files, merge them and test them.
 ## Install the poltergust CLI
 
 ```sh
-cd poltergust
 npm install
 npm link
 ```
@@ -18,13 +17,14 @@ npm link
 
 ```sh
 cd ..
-poltergust test ./rules
-poltergust merge ./rules
+poltergust test ./example
+poltergust merge ./example
 ```
 
 ### Example of a test output
 
 ```
+$ poltergust merge ./example
 🔎 Testing the spectral rules from the .md files in the directory: ./rules
 👻 base-path-must-start-with-slash (rules\api.md:42)
   ✅ Test OK (rules\api.md:17)
