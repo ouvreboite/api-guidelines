@@ -167,7 +167,7 @@ export function generateRuleFileContent(spectralRulesContents, rulesDir){
  * @param {{name: string, content: string, line: number, filePath: string}} rule 
  * @param {{content: string, assertions: {ruleName: string, line: number, shouldFail: boolean}[], line: number, filePath: string}} testCase 
  * @param {string} rulesDir 
- * @return {boolean} success
+ * @return {Promise<boolean>} success
  */
 export async function runTestCase(rule, testCase, rulesDir){
     let ok = true;

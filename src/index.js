@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import * as fs from 'fs';
 import * as path from 'path';
-import { extractAllRulesAndTestCases, generateRuleFileContent, runTestCase } from './functions.mjs';
+import { extractAllRulesAndTestCases, generateRuleFileContent, runTestCase } from './functions.js';
 
 // Skip the first two elements in process.argv (node path and file path)
 const args = process.argv.slice(2);
