@@ -2,48 +2,23 @@
 
 # 👻 poltergust
 
-An npm CLI to extract Spectral rules from .md files, merge them and test them.
+An npm CLI to extract, test and merge Spectral rules from .md files.
 
-- Each yaml codeblock starting by `#spectral` is considered a spectral rule and will be aggregated in the spectral.yaml file
-- Each yaml codeblock starting by `#✅-test-for: some-rule-name` is considered as an OpenAPI snippet that not should fail the corresponding spectral rule
-- Each yaml codeblock starting by `#❌-test-for: some-rule-name` is considered as an OpenAPI snippet that should fail the corresponding spectral rule
+- **Rules**: A YAML codeblock starting by `#👻-rule` is considered a spectral rule and will be aggregated in the spectral.yaml file
+- **Test cases**: A YAML codeblock containing `#👻-failures:` or `#👻-fails-here:` is considered an OpenAPI test case
+  - `#👻-failures: X some-rule-name` expects the given rule to return only X failures for this test case. For example `#👻-failures: 0 some-rule-name` can be used to assert that a test case does not trigger a rule.
+  - `#👻-fails-here: some-rule-name` expects the given rule to be trigger at this very line
+- **Base ruleset**: to merge the rules, a `spectral.base.yaml` is needed. It should be a standard Spectral ruleset files, with empty rules. But it can includes extends, aliases, functions...
 
-## Install the poltergust CLI
+## Setup and run
 
 ```sh
 npm install
-npm link
+npx poltergust test ./examples/valid
+npx poltergust merge ./examples/valid
 ```
 
-## Test and merge the rules
+## Examples
 
-```sh
-cd ..
-poltergust test ./example
-poltergust merge ./example
-```
-
-### Example of a test output
-
-```
-$ poltergust merge ./example
-🔎 Testing the spectral rules from the .md files in the directory: ./rules
-👻 base-path-must-start-with-slash (rules\api.md:42)
-  ✅ Test OK (rules\api.md:17)
-  ✅ Test OK (rules\api.md:28)
-👻 operation-parameters-must-have-description (rules\api.md:94)
-  ✅ Test OK (rules\api.md:60)
-  ✅ Test OK (rules\api.md:75)
-👻 operation-must-have-description (rules\api.md:110)
-👻 operation-must-have-no-summary (rules\api.md:125)
-👻 operation-must-have-at-least-one-response (rules\api.md:138)
-👻 request-bodies-must-have-a-content (rules\api.md:155)
-👻 path-parameters-must-be-kebab-case (rules\parameters.md:75)
-  ✅ Test OK (rules\parameters.md:9)
-  ❌ Was expecting to fail rule path-parameters-must-be-kebab-case at line 24 in test (rules\parameters.md:62)
-  But failed there instead:
-   { start: 8, end: 8 } (rules\parameters.md:46)
-   { start: 15, end: 15 } (rules\parameters.md:53)
-👻 required-property-must-exist (rules\parameters.md:121)
-  ✅ Test OK (rules\parameters.md:92)
-```
+- [valid](examples/valid)
+- [invalid](examples/invalid)

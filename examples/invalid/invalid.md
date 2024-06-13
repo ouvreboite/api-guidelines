@@ -6,8 +6,7 @@
 
 ❌ This test should not pass, as the server's url fails the rule
 ```yaml
-#spectral-test
-#spectral-should-not-fail-anywhere-✅: base-path-must-start-with-slash
+#👻-failures: 0 base-path-must-start-with-slash
 openapi: 3.0.1
 info:
   title: Test
@@ -20,7 +19,7 @@ servers:
   <summary>Spectral rule 🤖</summary>
 
 ```yaml
-#spectral-rule
+#👻-rule
 base-path-must-start-with-slash:
   description: Base path must start with /.
   message: "{{description}}. But was {{value}}."

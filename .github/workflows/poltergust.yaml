@@ -20,8 +20,8 @@ jobs:
     - name: Install poltergust
       run: npm ci
 
-    - name: Test the example ruleset
-      run: npx poltergust test ./example/valid
+    - name: Test the valid example ruleset
+      run: npx poltergust test ./examples/valid
 
   build-and-test-invalid-example:
     needs: build-and-test-valid-example
@@ -38,5 +38,5 @@ jobs:
       run: npm ci
 
     - name: Test the invalid example ruleset (should exit 1)
-      run: npx poltergust test ./example/invalid || (exitcode=$?; [ $exitcode -eq 1 ] || exit $exitcode)
+      run: npx poltergust test ./examples/invalid || (exitcode=$?; [ $exitcode -eq 1 ] || exit $exitcode)
       shell: bash

@@ -5,36 +5,10 @@
 ## path-parameters-must-be-kebab-case
 
 An example of valid kebab case parameters, both defined at the path or operation level
-```yaml
-#spectral-test
-#spectral-should-not-fail-anywhere-✅: path-parameters-must-be-kebab-case
-openapi: 3.0.1
-info:
-  title: Test
-  version: 1.0.0
-paths:
-  /cats/{dog-id}: 
-    get:
-      parameters:
-        - name: dog-id #good
-          in: path
-          required: true
-          schema:
-            type: number
-  /dogs/{cat-id}: 
-    parameters:
-      - name: cat-id #good
-        in: path
-        required: true
-        schema:
-          type: number
-    get: {}
-```
-
 
 Example of a wrongs parameters casing
 ```yaml
-#spectral-test
+#👻-failures: 2 path-parameters-must-be-kebab-case
 openapi: 3.0.1
 info:
   title: Test
@@ -43,14 +17,14 @@ paths:
   /cats/{dogId}: 
     get:
       parameters:
-        - name: dogId #spectral-should-fail-here-❌: path-parameters-must-be-kebab-case
+        - name: dogId #👻-fails-here: path-parameters-must-be-kebab-case
           in: path
           required: true
           schema:
             type: number
   /dogs/{catId}: 
     parameters:
-      - name: catId #spectral-should-fail-here-❌: path-parameters-must-be-kebab-case
+      - name: catId #👻-fails-here: path-parameters-must-be-kebab-case
         in: path
         required: true
         schema:
@@ -59,7 +33,7 @@ paths:
   /mouses/{mice-id}: 
     get:
       parameters:
-        - name: mice-id #spectral-should-not-fail-here-✅: path-parameters-must-be-kebab-case
+        - name: mice-id #this should not fail
           in: path
           required: true
           schema:
@@ -72,7 +46,7 @@ paths:
 This use the **pathParameters** alias to target both the parameters in the "paths" and the "operations.
 
 ```yaml
-#spectral-rule
+#👻-rule
 path-parameters-must-be-kebab-case:
   description: Path parameters must be kebab case
   given: "#parameters[?(@.in==\"path\")]"
@@ -89,7 +63,7 @@ path-parameters-must-be-kebab-case:
 ## required-property-must-exist
 
 ```yaml
-#spectral-test
+#👻-failures: 1 required-property-must-exist
 openapi: 3.0.1
 info:
   title: Test
@@ -106,8 +80,8 @@ components:
         nestedschema:
           type: object 
           required:
-            - id #spectral-should-not-fail-here-✅: required-property-must-exist
-            - nonexistent #spectral-should-fail-here-❌: required-property-must-exist
+            - id
+            - nonexistent #👻-fails-here: required-property-must-exist
           properties: 
             id: 
               type: string
@@ -119,7 +93,7 @@ components:
 This use the **isRequiredPropertyDefined** custom function.
 
 ```yaml
-#spectral-rule
+#👻-rule
 required-property-must-exist:
   description: Required property must exist
   message: "Required property must exist: {{error}}"

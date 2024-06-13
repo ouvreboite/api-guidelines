@@ -14,8 +14,7 @@ We don't want static base path, because the endpoints will be aggregated and a c
 OpenAPI examples:
 
 ```yaml
-#spectral-test
-#spectral-should-fail-anywhere-❌: base-path-must-start-with-slash
+#👻-failures: 1 base-path-must-start-with-slash
 openapi: 3.0.1
 info:
   title: Test
@@ -25,8 +24,7 @@ servers:
 ```
 
 ```yaml
-#spectral-test
-#spectral-should-not-fail-anywhere-✅: base-path-must-start-with-slash
+#👻-failures: 0 base-path-must-start-with-slash
 openapi: 3.0.1
 info:
   title: Test
@@ -39,7 +37,7 @@ servers:
   <summary>Spectral rule 🤖</summary>
 
 ```yaml
-#spectral-rule
+#👻-rule
 base-path-must-start-with-slash:
   description: Base path must start with /.
   message: "{{description}}. But was {{value}}."
@@ -57,13 +55,13 @@ base-path-must-start-with-slash:
 ## operation-parameters-must-have-description
 
 ```yaml
-#spectral-test
+#👻-failures: 1 operation-parameters-must-have-description
 openapi: 3.0.1
 paths:
   /test/{id}:
     get: 
       parameters:
-      - name: id #spectral-should-fail-here-❌: operation-parameters-must-have-description
+      - name: id #👻-fails-here: operation-parameters-must-have-description
         in: path 
         # need a description
         required: true
@@ -72,8 +70,7 @@ paths:
 ```
 
 ```yaml
-#spectral-test
-#spectral-should-not-fail-anywhere-✅: operation-parameters-must-have-description
+#👻-failures: 0 operation-parameters-must-have-description
 openapi: 3.0.1
 paths:
   /test/{id}:
@@ -91,7 +88,7 @@ paths:
   <summary>Spectral rule 🤖</summary>
 
 ```yaml
-#spectral-rule
+#👻-rule
 operation-parameters-must-have-description:
   description: Operation parameters must have a description
   given: $.paths[*][*].parameters[*]
@@ -107,7 +104,7 @@ operation-parameters-must-have-description:
 ## operation-must-have-description
 
 ```yaml
-#spectral-rule
+#👻-rule
 operation-must-have-description:
   description: Operation must have a description
   given: $.paths[*][*]
@@ -122,7 +119,7 @@ operation-must-have-description:
 Summary on operations mess up the documentation portal :(
 
 ```yaml
-#spectral-rule
+#👻-rule
 operation-must-have-no-summary:
   description: Operation must not have a summary
   given: $.paths[*][*]
@@ -135,7 +132,7 @@ operation-must-have-no-summary:
 ## operation-must-have-at-least-one-response
 
 ```yaml
-#spectral-rule
+#👻-rule
 operation-must-have-at-least-one-response:
   description: Operation must have at least one response
   given: $.paths[*][*]
@@ -152,7 +149,7 @@ operation-must-have-at-least-one-response:
 ## request-bodies-must-have-a-content
 
 ```yaml
-#spectral-rule
+#👻-rule
 request-bodies-must-have-a-content:
   description: Request bodies must have a content
   given: $.paths[*][*].requestBody

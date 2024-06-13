@@ -7,70 +7,76 @@ import { bundleAndLoadRuleset } from "@stoplight/spectral-ruleset-bundler/with-l
 
 /**
  * @param {string} rulesDir
- * @returns {Object.<string, {rule: {name: string, content: string, line: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, line: number, shouldFail: boolean}[], line: number, filePath: string}[]>} the spectral rules and test cases by rule name
+ * @returns {Object.<string, {rule: {name: string, content: string, line: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, line: number, failuresCount: number}[], line: number, filePath: string}[]>} the spectral rules and test cases by rule name
  */
 export function extractAllRulesAndTestCases(rulesDir) {
     const markdownFiles = fs.readdirSync(rulesDir).filter(f => f.endsWith('.md'));
 
-    let rulesAndTestCases = {};
+    /** @type {Object.<string, {rule: {name: string, content: string, line: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, line: number, failuresCount: number}[], line: number, filePath: string}[]>} */
+    let byRuleName = {}; 
     for (let file of markdownFiles) {
         const filePath = path.join(rulesDir, file);
-        const rulesAndTestCasesForFile = extractRulesAndTestCases(filePath);
-        //merge or append rules and tests cases in 
-        for (let ruleName in rulesAndTestCasesForFile) {
-            if(rulesAndTestCases[ruleName]){
-                const rule = rulesAndTestCases[ruleName].rule || rulesAndTestCasesForFile[ruleName].rule;
-                //merge testcases
-                const testCases = (rulesAndTestCases[ruleName].testCases || []).concat(rulesAndTestCasesForFile[ruleName].testCases || []);
-                rulesAndTestCases[ruleName] = {rule, testCases};
-            }else{
-                rulesAndTestCases[ruleName] = rulesAndTestCasesForFile[ruleName];
-            }
+        extractRulesAndTestCases(filePath, byRuleName);
+    }
+    
+    //check for missing rules
+    for (let ruleName in byRuleName) {
+        if (!byRuleName[ruleName].rule) {
+            const testcase = byRuleName[ruleName].testCases[0];
+            console.error(`⚠️ Test case for unknown rule: ${ruleName} at (${testcase.filePath}:${testcase.line})`);
+            delete byRuleName[ruleName];
         }
     }
-    return rulesAndTestCases
+
+    return byRuleName
 }
 
 
 /**
  * @param {string} filePath 
- * @returns {Object.<string, {rule: {name: string, content: string, line: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, line: number, shouldFail: boolean}[], line: number, filePath: string}[]>} rule and test cases by rule name
+ * @param {Object.<string, {rule: {name: string, content: string, line: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, line: number, failuresCount: number}[], line: number, filePath: string}[]>} byRuleName
  */
-export function extractRulesAndTestCases(filePath) {
+export function extractRulesAndTestCases(filePath, byRuleName) {
     const blocks = extractYamlBlocks(filePath);
 
-    // spectral rules starts by #spectral-rule
-    let byRuleName = {};
-    blocks.filter(block => block.content.startsWith('#spectral-rule')).forEach(block => {
+    blocks.forEach(block => {
         const rule = extractRuleFromBlock(block, filePath);
-
-        //handle duplicate rules
-        if(byRuleName[rule.name]) {
-            console.error(`❌ Rule name ${rule.name} is already defined`)
-        }
-        byRuleName[rule.name] = {rule};
-    });
-
-    // spectral tests starts by #spectral-test
-    blocks.filter(block => block.content.startsWith('#spectral-test')).forEach(block => {
         const testCase = extractTestCaseBlock(block, filePath);
 
-        //append the test case to each concerned rule
-        let disctinctRules = [...new Set(testCase.assertions.map(r => r.ruleName))];
-        disctinctRules.forEach(ruleName => {
-            //if the rule name exist in byRuleName, add the test case to it
-            if(byRuleName[ruleName]){
-                const testCases = byRuleName[ruleName].testCases || [];
-                testCases.push(testCase);
-                byRuleName[ruleName].testCases = testCases;
-            }else{
-                byRuleName[ruleName] = {testCases: [testCase]};
-            }
-            
-        });
-    });
+        //invalid states
+        if(!rule && !testCase){
+            console.log('Skipping block at line', block.line, 'in', block.filePath);
+            return;
+        }
+        if(rule && testCase){
+            console.error(`⚠️ Rule and test case in the same block at (${filePath}:${block.line})`);
+            return;
+        }
+        if(rule && byRuleName[rule.name] && byRuleName[rule.name].rule){
+            console.error(`⚠️ Rule ${rule.name} is defined in both ${byRuleName[rule.name].rule.filePath} and ${rule.filePath}`);
+            return;
+        }
 
-    return byRuleName;
+        //add rule
+        if(rule){
+            if(!byRuleName[rule.name])
+                byRuleName[rule.name] = {rule, testCases: []};
+            else
+                byRuleName[rule.name].rule = rule;
+        }
+        
+        //add test case to each rule impacted
+        if(testCase){
+            //use a set of rule name to avoid duplicates when a test case has multiple assertions on the same rule
+            let ruleNames = new Set(testCase.assertions.map(a => a.ruleName));
+            for (let ruleName of ruleNames) {
+                if(!byRuleName[ruleName])
+                    byRuleName[ruleName] = {rule: undefined, testCases: [testCase]};
+                else
+                    byRuleName[ruleName].testCases.push(testCase);
+            }
+        }
+    });
 }
 
 /**
@@ -97,11 +103,13 @@ export function extractYamlBlocks(filePath) {
 
 /**
  * 
- * @param {*} block 
- * @param {*} filePath 
+ * @param {{content: string, line: number, filePath: string}} block 
+ * @param {string} filePath 
  * @returns {{name: string, content: string, line: number, filePath: string}} the spectral rule
  */
 function extractRuleFromBlock(block, filePath) {
+    if(!block.content.startsWith('#👻-rule'))
+        return null;
     const content = block.content.split('\n').slice(1).join('\n');
     const name = content.split('\n')[0].trim().replace(':', '');
     const line = block.line;
@@ -110,35 +118,35 @@ function extractRuleFromBlock(block, filePath) {
 
 /**
  * 
- * @param {*} block 
- * @param {*} filePath 
- * @returns {{content: string, assertions: {ruleName: string, line: number, shouldFail: boolean}[], line: number, filePath: string}} the spectral rule
+ * @param {{content: string, line: number, filePath: string}} block 
+ * @returns {{content: string, assertions: {ruleName: string, line: number, failuresCount: number}[], line: number, filePath: string}} the spectral rule
  */
-function extractTestCaseBlock(block, filePath) {
-    const content = block.content.split('\n').slice(1).join('\n');
+function extractTestCaseBlock(block) {
+    if(block.content.startsWith('#👻-rule'))
+        return null;
+    const content = block.content;
     const line = block.line;
 
     const assertions = [];
     content.split('\n').forEach((line, index) => {
-        if(line.includes('#spectral-should-not-fail-anywhere-✅:')){
-            const ruleName = line.split('#spectral-should-not-fail-anywhere-✅:')[1].trim();
-            assertions.push({ruleName, shouldFail: false});
+        if(line.includes('#👻-failures:')){
+            const failureCountAndruleName = line.split('#👻-failures:')[1].trim();
+            const failuresCount = failureCountAndruleName.split(' ')[0];
+            const ruleName = failureCountAndruleName.split(' ')[1];
+            assertions.push({ruleName, failuresCount: failuresCount});
         }
-        if(line.includes('#spectral-should-not-fail-here-✅:')){
-            const ruleName = line.split('#spectral-should-not-fail-here-✅:')[1].trim();
-            assertions.push({ruleName, shouldFail: false, line: index});
-        }
-        if(line.includes('#spectral-should-fail-anywhere-❌:')){
-            const ruleName = line.split('#spectral-should-fail-anywhere-❌:')[1].trim();
-            assertions.push({ruleName, shouldFail: true});
-        }
-        if(line.includes('#spectral-should-fail-here-❌:')){
-            const ruleName = line.split('#spectral-should-fail-here-❌:')[1].trim();
-            assertions.push({ruleName, shouldFail: true, line: index});
+        else if(line.includes('#👻-fails-here:')){
+            const ruleName = line.split('#👻-fails-here:')[1].trim();
+            assertions.push({ruleName, failuresCount: 1, line: index});
+        }else if(line.includes('#👻-')){
+            const tag = line.split('#👻-')[1].trim();
+            console.error(`⚠️ Unknown tag: "#👻-${tag}" at (${block.filePath}:${block.line+index})`);
         }
     });
 
-    return {content, line, filePath, assertions};
+    if(assertions.length === 0)
+        return null;
+    return {content, line, filePath: block.filePath, assertions};
 }
 
 
@@ -150,7 +158,7 @@ function extractTestCaseBlock(block, filePath) {
 export function generateRuleFileContent(spectralRulesContents, rulesDir){
     const baseFile = path.join(rulesDir, 'spectral.base.yaml');
     if (!fs.existsSync(baseFile)) {
-        console.error(`❌ The file ${baseFile} does not exist.`);
+        console.error(`⚠️ The file ${baseFile} does not exist.`);
     }
     
     let ruleFileContent = fs.readFileSync(baseFile, 'utf8');
@@ -165,7 +173,7 @@ export function generateRuleFileContent(spectralRulesContents, rulesDir){
 /**
  * 
  * @param {{name: string, content: string, line: number, filePath: string}} rule 
- * @param {{content: string, assertions: {ruleName: string, line: number, shouldFail: boolean}[], line: number, filePath: string}} testCase 
+ * @param {{content: string, assertions: {ruleName: string, line: number, failuresCount: number}[], line: number, filePath: string}} testCase 
  * @param {string} rulesDir 
  * @return {Promise<boolean>} success
  */
@@ -202,53 +210,30 @@ export async function runTestCase(rule, testCase, rulesDir){
         const ruleAssertions = testCase.assertions.filter(a => a.ruleName === rule.name);
         
         for (let assertion of ruleAssertions) {
-            //should-not-fail-anywhere
-            if(!assertion.shouldFail && assertion.line === undefined){
-                if(ruleErrors.length > 0){
-                    console.error(`  ❌ Was not expecting to fail rule anywhere ${assertion.ruleName} in test (${testCase.filePath}:${testCase.line})`);
-                    console.error(`  But failed there instead:`);
-                    ruleErrors.forEach(e => console.error('  ', {start: e.range.start.line, end: e.range.end.line}, `(${testCase.filePath}:${testCase.line+e.range.start.line+1})`));
-                    ok = false;
-                }
+            //#👻-failures:
+            if(assertion.line === undefined && ruleErrors.length != assertion.failuresCount){
+                console.error(`  ❌ Expected ${assertion.failuresCount} failure(s) for rule ${assertion.ruleName} in test (${testCase.filePath}:${testCase.line})`);
+                console.error(`  But got ${ruleErrors.length} instead:`);
+                ruleErrors.forEach(e => console.error('  ', {start: e.range.start.line, end: e.range.end.line}, `(${testCase.filePath}:${testCase.line+e.range.start.line})`));
+                ok = false;
             }
-
-            //should-fail-anywhere
-            if(assertion.shouldFail && assertion.line === undefined){
-                if(ruleErrors.length === 0){
-                    console.error(`  ❌ Was expecting to fail rule anywhere ${assertion.ruleName} in test (${testCase.filePath}:${testCase.line})`);
-                    ok = false;
-                }
-            }
-
-            //should-not-fail-here
-            if(!assertion.shouldFail && assertion.line !== undefined){
+            //#👻-fails-here:
+            if(assertion.line !== undefined){
                 let matchingErrors = ruleErrors.filter(e => e.range.start.line <= assertion.line && e.range.end.line >= assertion.line);
-                if(matchingErrors.length > 0){
-                    console.error(`  ❌ Was not expecting to fail rule ${assertion.ruleName} at line ${assertion.line} in test (${testCase.filePath}:${testCase.line+assertion.line+1})`);
+                if(matchingErrors.length == 0){
+                    console.error(`  ❌ Expected rule ${assertion.ruleName} to fail at line ${assertion.line} in test (${testCase.filePath}:${testCase.line+assertion.line})`);
+                    console.error(`  But got ${ruleErrors.length} instead:`);
+                    ruleErrors.forEach(e => console.error('  ', {start: e.range.start.line, end: e.range.end.line}, `(${testCase.filePath}:${testCase.line+e.range.start.line})`));
                     ok = false;
                 }
             }
-
-            //should-fail-here
-            if(assertion.shouldFail && assertion.line !== undefined){
-                let matchingErrors = ruleErrors.filter(e => e.range.start.line <= assertion.line && e.range.end.line >= assertion.line);
-                if(matchingErrors.length === 0){
-                    console.error(`  ❌ Was expecting to fail rule ${assertion.ruleName} at line ${assertion.line} in test (${testCase.filePath}:${testCase.line+assertion.line+1})`);
-                    console.error(`  But failed there instead:`);
-                    ruleErrors.forEach(e => console.error('  ', {start: e.range.start.line, end: e.range.end.line}, `(${testCase.filePath}:${testCase.line+e.range.start.line+1})`));
-                    ok = false;
-                }
-            }
-
         }
+        
+        if(ok)
+            console.log(`  ✅ Test OK (${testCase.filePath}:${testCase.line})`);
     }finally{
         fs.rmSync(tempDir, {recursive: true});
     }
 
-    if(ok){
-            console.log(`  ✅ Test OK (${testCase.filePath}:${testCase.line})`);
-            return true;
-    }else{
-        return false;
-    }
+    return ok;
 }

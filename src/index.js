@@ -25,14 +25,6 @@ if (args[0] === 'merge') {
     console.log("🔎 Testing the spectral rules from the .md files in the directory: " + rulesDir);
     let rulesAndTestCases = extractAllRulesAndTestCases(rulesDir);
 
-    //if an entry has no associated rule, throw an error
-    for (let ruleName in rulesAndTestCases) {
-        if (!rulesAndTestCases[ruleName].rule) {
-            console.error(`❌ Test cases exists for unknown rule: ${ruleName}`);
-            delete rulesAndTestCases[ruleName];
-        }
-    }
-
     //run the test cases for each rule
     for(let ruleName in rulesAndTestCases){
         const rule = rulesAndTestCases[ruleName].rule;
