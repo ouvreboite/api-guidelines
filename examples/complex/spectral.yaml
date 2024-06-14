@@ -35,14 +35,6 @@ rules:
       field: description
       function: truthy
   
-  operation-must-have-no-summary:
-    description: Operation must not have a summary
-    given: $.paths[*][*]
-    severity: error
-    then:
-      field: summary
-      function: falsy
-  
   operation-must-have-at-least-one-response:
     description: Operation must have at least one response
     given: $.paths[*][*]
