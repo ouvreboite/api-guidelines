@@ -8,6 +8,8 @@ on:
 
 jobs:
   build-and-test-valid-example:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
 
     steps:
@@ -22,6 +24,14 @@ jobs:
 
     - name: Test the valid example ruleset
       run: npx poltergust ./examples/valid
+
+    - name: Commit updated valid ruleset
+      run: |
+        git config --global user.name '👻poltergust'
+        git config --global user.email 'poltergust@bot.github.com'
+        git commit -am "👻 Auto-update valid ruleset"
+        git push
+
 
   build-and-test-invalid-example:
     needs: build-and-test-valid-example

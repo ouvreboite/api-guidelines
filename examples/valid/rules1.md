@@ -38,7 +38,7 @@ servers:
 ```yaml
 #👻-rule
 base-path-must-start-with-slash:
-  description: Base path must start with /.
+  description: Base path must be relative (start with a /)
   message: "{{description}}. But was {{value}}."
   given: $.servers[*]
   severity: error
