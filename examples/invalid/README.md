@@ -6,7 +6,7 @@
 ## Test ouput
 
 ```
-npx poltergust test .\examples\invalid
+npx poltergust .\examples\invalid
 🔎 Testing the spectral rules from the .md files in the directory: .\examples\invalid
 👻 base-path-must-start-with-slash (examples\invalid\invalid.md:22)
   ❌ Expected 0 failure(s) for rule base-path-must-start-with-slash in test (examples\invalid\invalid.md:9)

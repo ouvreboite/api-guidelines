@@ -25,4 +25,5 @@ npx poltergust test .\examples\valid
   ✅ Test OK (examples\valid\rules2.md:11)
 👻 required-property-must-exist (examples\valid\rules2.md:96)
   ✅ Test OK (examples\valid\rules2.md:66)
+✅ Spectral rules merged in the file: examples\valid\spectral.yaml
 ```

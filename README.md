@@ -14,8 +14,7 @@ An npm CLI to extract, test and merge Spectral rules from .md files.
 
 ```sh
 npm install
-npx poltergust test ./examples/valid
-npx poltergust merge ./examples/valid
+npx poltergust ./examples/valid
 ```
 
 ## Examples
