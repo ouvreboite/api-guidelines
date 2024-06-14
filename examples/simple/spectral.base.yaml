@@ -1,0 +1,3 @@
+formats: ["oas3"]
+rules:
+#rules will be injected by poltergust

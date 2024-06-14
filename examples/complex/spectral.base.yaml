@@ -6,5 +6,5 @@ aliases:
   parameters: 
     - $.paths[*].parameters
     - $.paths[*][*].parameters
-#rules will be injected from the rules/*.md files
 rules:
+#rules will be injected by poltergust

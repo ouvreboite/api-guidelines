@@ -6,8 +6,8 @@ aliases:
   parameters: 
     - $.paths[*].parameters
     - $.paths[*][*].parameters
-#rules will be injected from the rules/*.md files
 rules:
+#rules will be injected by poltergust
   base-path-must-start-with-slash:
     description: Base path must be relative (start with a /)
     message: "{{description}}. But was {{value}}."

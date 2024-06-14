@@ -1,0 +1,11 @@
+formats: ["oas3"]
+rules:
+#rules will be injected by poltergust
+  operation-parameters-must-have-description:
+    description: Operation parameters must have a description
+    given: $.paths[*][*].parameters[*]
+    severity: error
+    then:
+      field: description
+      function: truthy
+  

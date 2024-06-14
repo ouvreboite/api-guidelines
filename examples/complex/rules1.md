@@ -3,8 +3,7 @@
 1. [base-path-must-start-with-slash](#base-path-must-start-with-slash)
 2. [operation-parameters-must-have-description](#operation-parameters-must-have-description)
 3. [operation-must-have-description](#operation-must-have-description)
-4. [operation-must-have-no-summary](#operation-must-have-no-summary)
-5. [operation-must-have-at-least-one-response](#operation-must-have-at-least-one-response)
+4. [operation-must-have-at-least-one-response](#operation-must-have-at-least-one-response)
 
 ## base-path-must-start-with-slash
 
@@ -111,21 +110,6 @@ operation-must-have-description:
   then:
     field: description
     function: truthy
-```
-
-## operation-must-have-no-summary
-
-Summary on operations mess up the documentation portal :(
-
-```yaml
-#👻-rule
-operation-must-have-no-summary:
-  description: Operation must not have a summary
-  given: $.paths[*][*]
-  severity: error
-  then:
-    field: summary
-    function: falsy
 ```
 
 ## operation-must-have-at-least-one-response

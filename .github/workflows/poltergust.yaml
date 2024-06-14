@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-test-valid-example:
+  build-and-test-valid-examples:
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -22,19 +22,20 @@ jobs:
     - name: Install poltergust
       run: npm ci
 
-    - name: Test the valid example ruleset
-      run: npx poltergust ./examples/valid
+    - name: Run the simple example
+      run: npx poltergust ./examples/simple
 
-    - name: Commit updated valid ruleset
+    - name: Run the complex example
+      run: npx poltergust ./examples/complex
+
+    - name: Commit aggregated rulesets
       run: |
         git config --global user.name '👻poltergust'
         git config --global user.email 'poltergust@bot.github.com'
-        git commit -am "👻 Auto-update valid ruleset"
-        git push
-
+        git diff --quiet || ( git commit -am "👻 Auto-update aggregated ruleset(s)" && git push)
 
   build-and-test-invalid-example:
-    needs: build-and-test-valid-example
+    needs: build-and-test-valid-examples
     runs-on: ubuntu-latest
 
     steps:
@@ -47,6 +48,6 @@ jobs:
     - name: Install poltergust
       run: npm ci
 
-    - name: Test the invalid example ruleset (should exit 1)
+    - name: Run the invalid example (should exit 1)
       run: npx poltergust ./examples/invalid || (exitcode=$?; [ $exitcode -eq 1 ] || exit $exitcode)
       shell: bash
