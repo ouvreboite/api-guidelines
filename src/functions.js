@@ -7,10 +7,11 @@ import { bundleAndLoadRuleset } from "@stoplight/spectral-ruleset-bundler/with-l
 
 /**
  * @param {string} rulesDir
- * @returns {Object.<string, {rule: {name: string, content: string, line: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, line: number, failuresCount: number}[], line: number, filePath: string}[]>} the spectral rules and test cases by rule name
+ * @returns {Object.<string, {rule: {name: string, content: string, line: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, line: number, failuresCount: number}[], line: number, filePath: string}[]}>} the spectral rules and test cases by rule name
  */
 export function extractAllRulesAndTestCases(rulesDir) {
-    const markdownFiles = fs.readdirSync(rulesDir).filter(f => f.endsWith('.md'));
+    //find all markdown files in the rules directory and subdirectories
+    const markdownFiles = fs.readdirSync(rulesDir, {encoding: "utf8", recursive: true}).filter(f => f.endsWith('.md'));
 
     /** @type {Object.<string, {rule: {name: string, content: string, line: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, line: number, failuresCount: number}[], line: number, filePath: string}[]>} */
     let byRuleName = {}; 
@@ -34,14 +35,14 @@ export function extractAllRulesAndTestCases(rulesDir) {
 
 /**
  * @param {string} filePath 
- * @param {Object.<string, {rule: {name: string, content: string, line: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, line: number, failuresCount: number}[], line: number, filePath: string}[]>} byRuleName
+ * @param {Object.<string, {rule: {name: string, content: string, line: number, filePath: string}, testCases: {content: string, assertions: {ruleName: string, line: number, failuresCount: number}[], line: number, filePath: string}[]}>} byRuleName
  */
 export function extractRulesAndTestCases(filePath, byRuleName) {
     const blocks = extractYamlBlocks(filePath);
 
     blocks.forEach(block => {
         const rule = extractRuleFromBlock(block, filePath);
-        const testCase = extractTestCaseBlock(block, filePath);
+        const testCase = extractTestCaseBlock(block);
 
         //invalid states
         if(!rule && !testCase){

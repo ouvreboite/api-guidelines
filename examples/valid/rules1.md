@@ -5,7 +5,6 @@
 3. [operation-must-have-description](#operation-must-have-description)
 4. [operation-must-have-no-summary](#operation-must-have-no-summary)
 5. [operation-must-have-at-least-one-response](#operation-must-have-at-least-one-response)
-6. [request-bodies-must-have-a-content](#request-bodies-must-have-a-content)
 
 ## base-path-must-start-with-slash
 
@@ -141,23 +140,6 @@ operation-must-have-at-least-one-response:
     - field: responses
       function: truthy
     - field: responses
-      function: length
-      functionOptions:
-        min: 1
-```
-
-## request-bodies-must-have-a-content
-
-```yaml
-#👻-rule
-request-bodies-must-have-a-content:
-  description: Request bodies must have a content
-  given: $.paths[*][*].requestBody
-  severity: error
-  then:
-    - field: content
-      function: truthy
-    - field: content
       function: length
       functionOptions:
         min: 1

@@ -55,18 +55,6 @@ rules:
         functionOptions:
           min: 1
   
-  request-bodies-must-have-a-content:
-    description: Request bodies must have a content
-    given: $.paths[*][*].requestBody
-    severity: error
-    then:
-      - field: content
-        function: truthy
-      - field: content
-        function: length
-        functionOptions:
-          min: 1
-  
   path-parameters-must-be-kebab-case:
     description: Path parameters must be kebab case
     given: "#parameters[?(@.in==\"path\")]"
@@ -84,4 +72,16 @@ rules:
     severity: error
     then:
       function: isRequiredPropertyDefined
+  
+  request-bodies-must-have-a-content:
+    description: Request bodies must have a content
+    given: $.paths[*][*].requestBody
+    severity: error
+    then:
+      - field: content
+        function: truthy
+      - field: content
+        function: length
+        functionOptions:
+          min: 1
   
