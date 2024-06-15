@@ -52,14 +52,14 @@ paths:
           type: string
 ```
 
-3. The spectral.base.yaml is:
+3. The Spectral base file is defined in [spectral.base.yaml](examples/simple/spectral.base.yaml):
 ```yaml
 formats: ["oas3"]
 rules:
 #rules will be injected by poltergust
 ```
 
-4. Running poltegust:
+4. Let's run poltegust:
 ```bash
 npx poltergust .\examples\simple
 🔎 Testing the spectral rules from the .md files in the directory: .\examples\simple
@@ -67,8 +67,8 @@ npx poltergust .\examples\simple
   ✅ Test OK (examples\simple\README.md:18)
 ✅ Spectral rules merged in the file: examples\simple\spectral.yaml
 ```
-
-4. The aggregated Spectral ruleset can be found [here](examples/simple/spectral.yaml)
+It found the rule and run the corresponding test case. 
+Then it created [spectral.yaml](examples/simple/spectral.yaml) that contains the rule merged into the base file.
 
 ```yaml
 formats: ["oas3"]
