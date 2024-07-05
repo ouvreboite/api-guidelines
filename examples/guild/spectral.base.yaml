@@ -1,0 +1,14 @@
+formats: ["oas3"]
+functions: 
+  - matchExample
+  - checkObjectProperties
+aliases:
+  responses-4XX:  
+    - $.paths.*.*.responses[?(@property.startsWith('4'))]
+  responses-5XX: 
+    - $.paths.*.*.responses[?(@property.startsWith('5'))]
+  responses-error:
+    - "#responses-4XX"
+    - "#responses-5XX"
+rules:
+#rules will be injected by poltergust

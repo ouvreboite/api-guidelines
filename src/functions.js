@@ -2,7 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import spectralCore from "@stoplight/spectral-core";
 import { mkdtemp } from 'node:fs/promises';
-const { Spectral } = spectralCore;
+const { Spectral, Document } = spectralCore;
+import Parsers from "@stoplight/spectral-parsers";
 import { bundleAndLoadRuleset } from "@stoplight/spectral-ruleset-bundler/with-loader";
 
 /**
@@ -204,7 +205,8 @@ export async function runTestCase(rule, testCase, rulesDir){
         //run test case against the rule
         const spectral = new Spectral();
         spectral.setRuleset(await bundleAndLoadRuleset(path.resolve(tempRuleFilePath), { fs, fetch }));
-        const errors = await spectral.run(testCase.content);
+        const oas = new Document(testCase.content, Parsers.Yaml, testCase.filePath);
+        const errors = await spectral.run(oas);
 
         //check each assertions
         const ruleErrors = errors.filter(e => e.code === rule.name);
@@ -215,7 +217,7 @@ export async function runTestCase(rule, testCase, rulesDir){
             if(assertion.line === undefined && ruleErrors.length != assertion.failuresCount){
                 console.error(`  ❌ Expected ${assertion.failuresCount} failure(s) for rule ${assertion.ruleName} in test (${testCase.filePath}:${testCase.line})`);
                 console.error(`  But got ${ruleErrors.length} instead:`);
-                ruleErrors.forEach(e => console.error('  ', {start: e.range.start.line, end: e.range.end.line}, `(${testCase.filePath}:${testCase.line+e.range.start.line})`));
+                ruleErrors.forEach(e => console.error(`  start: ${e.range.start.line}, end: ${e.range.end.line}, path: ${e.path?.join('.')}, error: ${e.message} (${testCase.filePath}:${testCase.line+e.range.start.line})`));
                 ok = false;
             }
             //#👻-fails-here:
@@ -224,7 +226,7 @@ export async function runTestCase(rule, testCase, rulesDir){
                 if(matchingErrors.length == 0){
                     console.error(`  ❌ Expected rule ${assertion.ruleName} to fail at line ${assertion.line} in test (${testCase.filePath}:${testCase.line+assertion.line})`);
                     console.error(`  But got ${ruleErrors.length} instead:`);
-                    ruleErrors.forEach(e => console.error('  ', {start: e.range.start.line, end: e.range.end.line}, `(${testCase.filePath}:${testCase.line+e.range.start.line})`));
+                    ruleErrors.forEach(e => console.error(`  start: ${e.range.start.line}, end: ${e.range.end.line}, path: ${e.path?.join('.')}, error: ${e.message} (${testCase.filePath}:${testCase.line+e.range.start.line})`));
                     ok = false;
                 }
             }

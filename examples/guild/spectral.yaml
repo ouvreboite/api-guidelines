@@ -1,0 +1,83 @@
+formats: ["oas3"]
+functions: 
+  - matchExample
+  - checkObjectProperties
+aliases:
+  responses-4XX:  
+    - $.paths.*.*.responses[?(@property.startsWith('4'))]
+  responses-5XX: 
+    - $.paths.*.*.responses[?(@property.startsWith('5'))]
+  responses-error:
+    - "#responses-4XX"
+    - "#responses-5XX"
+rules:
+#rules will be injected by poltergust
+  error-responses-should-be-in-json:
+    description: Error responses must return application/json
+    given: "#responses-error"
+    severity: error
+    then:
+      - field: content["application/json"]
+        function: defined
+      - field: content["application/json"].schema
+        function: defined
+  
+  error-responses-should-have-errors-and-warnings-array:
+    description: Error responses should have errors and warnings arrays
+    message: "{{description}}, {{error}}."
+    given: "#responses-error.content[\"application/json\"].schema"
+    severity: error
+    then:
+      - function: checkObjectProperties
+        functionOptions:
+          mandatoryProperties:
+            - name: errors
+              type: array
+              required: true
+          optionalProperties:
+            - name: warnings
+              type: array
+            - name: metadata
+            - name: data
+          canHaveOtherProperties: false
+      - function: matchExample
+        functionOptions:
+          match: true
+          example:
+            {
+              "errors": [
+                  {
+                      "traceId": "56ed4096-f96a-4944-8881-05468efe0ec9",
+                      "type": "validation",
+                      "code": "target-bid-too-small",
+                      "instance": "/2020-10/campaigns/8343086999167541140",
+                      "detail": "Something wrong happened"
+                  }
+              ]
+          }
+  
+  error-response-should-contain-problem-details:
+    description: Error responses errors/warning should be problem details
+    message: "{{description}}, {{error}}."
+    given: "#responses-error.content[\"application/json\"].schema.properties[errors,warnings].items"
+    severity: error
+    then:
+      function: checkObjectProperties
+      functionOptions:
+        mandatoryProperties:
+          - name: traceId
+            type: string
+          - name: instance
+            type: string
+          - name: code
+            type: string
+          - name: type
+            type: string
+        optionalProperties:
+          - name: title
+            type: string
+          - name: detail
+            type: string
+          - name: source
+            type: object
+  
