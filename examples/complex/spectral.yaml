@@ -6,23 +6,8 @@ aliases:
   parameters: 
     - $.paths[*].parameters
     - $.paths[*][*].parameters
-  responses-4XX:  
-    - $.paths.*.*.responses[?(@property.startsWith('4'))]
-  responses-5XX: 
-    - $.paths.*.*.responses[?(@property.startsWith('5'))]
-  responses-error:
-    - "#responses-4XX"
-    - "#responses-5XX"
 rules:
 #rules will be injected by poltergust
-  error-responses-should-be-in-json:
-    description: Error responses must return application/json
-    given: "#responses-error"
-    severity: error
-    then:
-      - field: content["application/json"].schema
-        function: defined
-
   base-path-must-start-with-slash:
     description: Base path must be relative (start with a /)
     message: "{{description}}. But was {{value}}."
